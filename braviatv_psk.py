@@ -2,7 +2,6 @@
 Support for interface with a Sony Bravia TV.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/media_player.braviatv/
-
 Updated by G3rard - October 2017
     Changes:
     * use Pre-shared key (PSK) instead of connecting with a pin and the use of a cookie
@@ -45,7 +44,6 @@ SUPPORT_BRAVIA = SUPPORT_PAUSE | SUPPORT_VOLUME_STEP | \
 CLIENTID_PREFIX = 'HomeAssistant'
 NICKNAME = 'Home Assistant'
 DEFAULT_NAME = 'Sony Bravia TV'
-STATE_STARTING = 'TV started' ### TO DO --> not working yet
 
 CONF_PSK = 'psk'
 CONF_MAC = 'mac'
@@ -126,12 +124,6 @@ class BraviaTVDevice(MediaPlayerDevice):
     def update(self):
         """Update TV info."""
         try:
-            ### TV is starting
-            ### TO DO --> show this while TV is starting but not yet showing information
-            if self._state == STATE_STARTING:
-                self._state = STATE_ON
-                self._channel_name = 'TV started'
-
             power_status = self._braviarc.get_power_status()
             if power_status == 'active':
                 self._state = STATE_ON
@@ -160,7 +152,14 @@ class BraviaTVDevice(MediaPlayerDevice):
                         self._media_position_perc = time_info.get('media_position_perc')
                         self._last_update = utcnow()
             else:
-                self._state = STATE_OFF
+                if self._channel_name is not None:
+                    if 'TV started' in self._channel_name: # TV is starting up which takes some time before it responds
+                        _LOGGER.info("TV is starting, no info available yet")
+                    else:
+                        self._state = STATE_OFF
+                        ### To do
+                else:
+                    self._state = STATE_OFF
 
         except Exception as exception_instance:  # pylint: disable=broad-except
             _LOGGER.error("No data received from TV, probably it has just been turned off. Error message is: ")
@@ -312,11 +311,16 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def turn_on(self):
         """Turn the media player on. Use a different command for Android as WOL is not working"""
-        self._state = STATE_STARTING
         if self._android:
             self._braviarc.turn_on_command()
         else:
             self._braviarc.turn_on()
+        
+        # Show info that the TV is starting while no program is yet available
+        self._reset_playing_info()
+        self._state = STATE_ON
+        self._channel_name = 'TV started'
+        self._program_name = 'Please wait until program info is available'
 
     def turn_off(self):
         """Turn off media player."""
