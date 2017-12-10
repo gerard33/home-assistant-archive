@@ -8,7 +8,7 @@ import logging
 import voluptuous as vol
 
 from homeassistant.components.climate import (
-    ClimateDevice, PLATFORM_SCHEMA)
+    ClimateDevice, PLATFORM_SCHEMA, SUPPORT_OPERATION_MODE, SUPPORT_TARGET_TEMPERATURE)
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS)
@@ -52,6 +52,8 @@ OPERATION_MODES = {COMFORT: STATE_COMFORT,
                    AWAY: STATE_AWAY,
                    SAVING: STATE_SAVING,
                    FIXED_TEMP: STATE_FIXED_TEMP}
+
+SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE | SUPPORT_OPERATION_MODE
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
@@ -154,6 +156,11 @@ class EThermostaat(ClimateDevice):
     def is_away_mode_on(self):
         """Return true if away mode is on."""
         return self._current_operation_mode in [STATE_AWAY, STATE_SAVING]
+
+    @property
+    def supported_features(self):
+        """Return the list of supported features."""
+        return SUPPORT_FLAGS
 
     def set_operation_mode(self, operation_mode):
         """Set new operation mode."""
