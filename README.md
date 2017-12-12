@@ -1,4 +1,4 @@
-# home-assistant
+# Home Assistant
 
 **Sony Bravia TV**
 
