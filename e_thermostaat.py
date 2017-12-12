@@ -1,5 +1,5 @@
 """
-Adds support for the Essent Icy e-Thermostaat units.
+Adds support for the Essent Icy E-Thermostaat units.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/climate.e_thermostaat/
 """
@@ -8,7 +8,8 @@ import logging
 import voluptuous as vol
 
 from homeassistant.components.climate import (
-    ClimateDevice, PLATFORM_SCHEMA, SUPPORT_OPERATION_MODE, SUPPORT_TARGET_TEMPERATURE)
+    ClimateDevice, PLATFORM_SCHEMA, SUPPORT_OPERATION_MODE,
+    SUPPORT_TARGET_TEMPERATURE, SUPPORT_AWAY_MODE)
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS)
@@ -24,36 +25,36 @@ URL_DATA = "https://portal.icy.nl/data"
 DEFAULT_NAME = 'E-Thermostaat'
 
 CONF_NAME = 'name'
-CONF_AWAY_TEMPERATURE = 'away_temperature'
-CONF_SAVING_TEMPERATURE = 'saving_temperature'
 CONF_COMFORT_TEMPERATURE = 'comfort_temperature'
+CONF_SAVING_TEMPERATURE = 'saving_temperature'
+CONF_AWAY_TEMPERATURE = 'away_temperature'
 
-STATE_FIXED_TEMP = "fixed temperature"
-STATE_COMFORT = "comfort"
-STATE_AWAY = "away"
-STATE_SAVING = "saving"
+STATE_COMFORT = "Comfortstand"          # "comfort"
+STATE_SAVING = "Bespaarstand"           # "saving"
+STATE_AWAY = "Lang-weg-stand"           # "away"
+STATE_FIXED_TEMP = "Vaste temperatuur"  # "fixed temperature"
 
-DEFAULT_SAVING_TEMPERATURE = 10
-DEFAULT_AWAY_TEMPERATURE = 14
-DEFAULT_COMFORT_TEMPERATURE = 19
+DEFAULT_COMFORT_TEMPERATURE = 20
+DEFAULT_SAVING_TEMPERATURE = 17
+DEFAULT_AWAY_TEMPERATURE = 12
 
 # Values from web interface
 MIN_TEMP = 10
 MAX_TEMP = 30
 
 # Values reverse engineered for settings
-FIXED_TEMP = 160
 COMFORT = 32
-AWAY = 64
-SAVING = 0
+SAVING = 64
+AWAY = 0
+FIXED_TEMP = 128
 
 # Dict from Integer to Operation mode
 OPERATION_MODES = {COMFORT: STATE_COMFORT,
-                   AWAY: STATE_AWAY,
                    SAVING: STATE_SAVING,
+                   AWAY: STATE_AWAY,
                    FIXED_TEMP: STATE_FIXED_TEMP}
 
-SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE | SUPPORT_OPERATION_MODE
+SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE | SUPPORT_OPERATION_MODE | SUPPORT_AWAY_MODE)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
@@ -67,34 +68,32 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
                  default=DEFAULT_COMFORT_TEMPERATURE): vol.Coerce(float)
 })
 
-
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Setup the e thermostat."""
     name = config.get(CONF_NAME)
+    comfort_temp = config.get(CONF_COMFORT_TEMPERATURE)
     saving_temp = config.get(CONF_SAVING_TEMPERATURE)
     away_temp = config.get(CONF_AWAY_TEMPERATURE)
-    comfort_temp = config.get(CONF_COMFORT_TEMPERATURE)
     username = config.get(CONF_USERNAME)
     password = config.get(CONF_PASSWORD)
 
     add_devices([EThermostaat(
-        name, username, password, saving_temp,
-        away_temp, comfort_temp)])
-
+        name, username, password,
+        comfort_temp, saving_temp, away_temp)])
 
 class EThermostaat(ClimateDevice):
     """Representation of a EThermostaat device."""
 
     def __init__(self, name, username, password,
-                 saving_temp, away_temp, comfort_temp):
+                 comfort_temp, saving_temp, away_temp):
         """Initialize the thermostat."""
         self._name = name
         self._username = username
         self._password = password
 
-        self._away_temp = away_temp
-        self._saving_temp = saving_temp
         self._comfort_temp = comfort_temp
+        self._saving_temp = saving_temp
+        self._away_temp = away_temp
 
         self._current_temperature = None
         self._target_temperature = None
@@ -104,7 +103,7 @@ class EThermostaat(ClimateDevice):
         self._uid = None
         self._token = None
 
-        self._operation_list = [STATE_COMFORT, STATE_AWAY, STATE_SAVING, STATE_FIXED_TEMP]
+        self._operation_list = [STATE_COMFORT, STATE_SAVING, STATE_AWAY, STATE_FIXED_TEMP]
         self.update()
 
     @property
@@ -155,7 +154,7 @@ class EThermostaat(ClimateDevice):
     @property
     def is_away_mode_on(self):
         """Return true if away mode is on."""
-        return self._current_operation_mode in [STATE_AWAY, STATE_SAVING]
+        return self._current_operation_mode in [STATE_AWAY]
 
     @property
     def supported_features(self):
@@ -242,7 +241,7 @@ class EThermostaat(ClimateDevice):
             r = req_func(url, data=payload_new, headers=header)
             return r
         except Exception as e:
-            _LOGGER.error("Could not connect to e-thermostaat."
+            _LOGGER.error("Could not connect to E-Thermostaat."
                           "error: %s" % e)
 
     def _request_with_retry(self, url, payload, request_type):
@@ -262,7 +261,7 @@ class EThermostaat(ClimateDevice):
         return r
 
     def _get_data(self):
-        """Get the data  of the E-Thermostaat."""
+        """Get the data of the E-Thermostaat."""
         payload = (('username', self._username), ('password', self._password))
 
         r = self._request_with_retry(URL_DATA, payload, request_type='get')
@@ -275,8 +274,9 @@ class EThermostaat(ClimateDevice):
             self._old_conf = data['configuration']
             self._current_operation_mode = \
                 self.map_int_to_operation_mode(self._old_conf[0])
+            _LOGGER.debug("E-Thermostaat configuration number: {}".format(self._old_conf[0]))
         else:
-            _LOGGER.error("Could not get data from e-Thermostaat.")
+            _LOGGER.error("Could not get data from E-Thermostaat.")
 
     def update(self):
         """Get the latest data."""
@@ -284,5 +284,12 @@ class EThermostaat(ClimateDevice):
 
     @staticmethod
     def map_int_to_operation_mode(config_int):
-        return OPERATION_MODES[min(OPERATION_MODES,
-                                   key=lambda x: abs(x - config_int))]
+        """Map the value of the E-Thermostaat to the operation mode."""
+        if AWAY <= config_int < COMFORT:
+            return STATE_AWAY
+        elif COMFORT <= config_int < SAVING:
+            return STATE_COMFORT
+        elif SAVING <= config_int < FIXED_TEMP:
+            return STATE_SAVING
+        else:
+            return STATE_FIXED_TEMP
