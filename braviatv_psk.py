@@ -1,7 +1,7 @@
 """
 Support for interface with a Sony Bravia TV.
 For more details about this platform, please refer to the documentation at
-https://home-assistant.io/components/media_player.braviatv/
+https://home-assistant.io/components/media_player.braviatv_psk/
 Updated by G3rard - October 2017
     Changes:
     * use Pre-shared key (PSK) instead of connecting with a pin and the use of a cookie
@@ -14,9 +14,9 @@ Updated by G3rard - October 2017
     * channel up/down with next and previous buttons when using built-in TV tuner
 """
 import logging
-import os
-import json
-import re
+#import os
+#import json
+#import re
 
 import voluptuous as vol
 
@@ -24,10 +24,9 @@ from homeassistant.components.media_player import (
     SUPPORT_NEXT_TRACK, SUPPORT_PAUSE, SUPPORT_PREVIOUS_TRACK, SUPPORT_TURN_ON,
     SUPPORT_TURN_OFF, SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_STEP, SUPPORT_PLAY,
     SUPPORT_VOLUME_SET, SUPPORT_SELECT_SOURCE, MediaPlayerDevice,
-    PLATFORM_SCHEMA, MEDIA_TYPE_MUSIC, SUPPORT_STOP)
+    PLATFORM_SCHEMA, MEDIA_TYPE_TVSHOW, SUPPORT_STOP)
 from homeassistant.const import (CONF_HOST, CONF_NAME, STATE_OFF, STATE_ON)
 import homeassistant.helpers.config_validation as cv
-from homeassistant.util.dt import utcnow
 
 REQUIREMENTS = [
     'https://github.com/gerard33/braviarc/archive/0.4.2.zip'
@@ -109,13 +108,8 @@ class BraviaTVDevice(MediaPlayerDevice):
         self._min_volume = None
         self._max_volume = None
         self._volume = None
-        ###Times
         self._start_time = None
         self._end_time = None
-        self._media_position = None
-        self._media_position_updated_at = None
-        self._media_position_perc = None
-        self._last_update = None
 
         _LOGGER.debug("Set up Sony Bravia TV with IP: " + host + " - PSK: " + psk + " - MAC: " + mac)
 
@@ -148,9 +142,6 @@ class BraviaTVDevice(MediaPlayerDevice):
                         time_info = self._braviarc.playing_time(self._start_date_time, self._duration)
                         self._start_time = time_info.get('start_time')
                         self._end_time = time_info.get('end_time')
-                        self._media_position = time_info.get('media_position')
-                        self._media_position_perc = time_info.get('media_position_perc')
-                        self._last_update = utcnow()
             else:
                 if self._channel_name is not None:
                     if 'TV started' in self._channel_name: # TV is starting up which takes some time before it responds
@@ -177,9 +168,6 @@ class BraviaTVDevice(MediaPlayerDevice):
         self._start_date_time = None
         self._start_time = None
         self._end_time = None
-        self._media_position = None
-        self._media_position_updated_at = None
-        self._media_position_perc = None
 
     def _refresh_volume(self):
         """Refresh volume information."""
@@ -248,44 +236,7 @@ class BraviaTVDevice(MediaPlayerDevice):
     def media_content_type(self):
         """Content type of current playing media."""
         # Loaded so media_artist is shown, used for program information below the channel in the state card
-        return MEDIA_TYPE_MUSIC
-
-    @property
-    def media_duration(self):
-        """Duration of current playing media in seconds."""
-        if self._duration is not None:
-            return int(self._duration)
-
-    @property
-    def media_position(self):
-        """Position of current playing media in seconds."""
-        if self._media_position is not None:
-            return int(self._media_position)
-
-    @property
-    def media_position_updated_at(self):
-        """When was the position of the current playing media valid.
-        Returns value from homeassistant.util.dt.utcnow().
-        """
-        return self._last_update
-
-    ###@property
-    #def media_image_url(self):
-    #    """Image url of current playing media."""
-    #    return "http://url/image.png"
-    
-    @property
-    def media_artist(self):
-        """Artist of current playing media, music track only.
-        Used to show TV program info.
-        """
-        return_value = None
-        if self._program_name is not None:
-            if self._start_time is not None and self._end_time is not None:
-                return_value = self._program_name + ' [' + self._start_time + ' - ' + self._end_time + ']'
-            else:
-                return_value = self._program_name
-        return return_value
+        return MEDIA_TYPE_TVSHOW
 
     @property
     def media_title(self):
@@ -295,9 +246,22 @@ class BraviaTVDevice(MediaPlayerDevice):
         return_value = None
         if self._channel_name is not None:
             if self._channel_number is not None:
-                return_value = str(int(self._channel_number)) + ': ' + self._channel_name
+                return_value = str(self._channel_number.lstrip('0')) + ': ' + self._channel_name
             else:
                 return_value = self._channel_name
+        return return_value
+
+    @property
+    def media_series_title(self):
+        """Title of series of current playing media, TV show only.
+        Used to show TV program info.
+        """
+        return_value = None
+        if self._program_name is not None:
+            if self._start_time is not None and self._end_time is not None:
+                return_value = self._program_name + ' [' + self._start_time + ' - ' + self._end_time + ']'
+            else:
+                return_value = self._program_name
         return return_value
 
     @property
@@ -315,7 +279,7 @@ class BraviaTVDevice(MediaPlayerDevice):
             self._braviarc.turn_on_command()
         else:
             self._braviarc.turn_on()
-        
+
         # Show info that the TV is starting while no program is yet available
         self._reset_playing_info()
         self._state = STATE_ON
@@ -366,16 +330,8 @@ class BraviaTVDevice(MediaPlayerDevice):
         else:
             self._braviarc.media_pause()
 
-    def media_stop(self):
-        """Send media stop command to media player."""
-        ### TO DO --> not used currently
-        self._playing = False
-        self._braviarc.media_pause()
-
     def media_next_track(self):
         """Send next track command or next channel when TV tuner is on."""
-        ###TO DO --> if self._source == "tv:dvbc" or "tv:dvbt":
-        ###TO DO --> if self._program_media_type == "tv":
         if self._program_name is not None:
             self._braviarc.send_command('ChannelUp')
         else:
