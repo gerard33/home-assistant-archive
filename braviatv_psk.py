@@ -332,14 +332,18 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def media_next_track(self):
         """Send next track command or next channel when TV tuner is on."""
-        if self._program_name is not None:
+        ###TO DO --> if self._source == "tv:dvbc" or "tv:dvbt":
+        ###TO DO --> if self._program_media_type == "tv":
+        ###if self._program_name is not None:
+        if self._program_media_type == 'tv':
             self._braviarc.send_command('ChannelUp')
         else:
             self._braviarc.media_next_track()
 
     def media_previous_track(self):
         """Send the previous track command or previous channel when TV tuner is on."""
-        if self._program_name is not None:
+        #if self._program_name is not None:
+        if self._program_media_type == 'tv':
             self._braviarc.send_command('ChannelDown')
         else:
             self._braviarc.media_previous_track()
