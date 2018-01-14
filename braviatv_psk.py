@@ -318,10 +318,10 @@ class BraviaTVDevice(MediaPlayerDevice):
         self._braviarc.media_play()
 
     def media_pause(self):
-        """Send media pause command to media player."""
+        """Send media pause command to media player or TV pause when TV tuner is on."""
         self._playing = False
         #if self._program_name is not None:
-        if self._program_media_type == 'tv':
+        if self._program_media_type == 'tv' or self._program_name is not None:
             # Pause TV when TV tuner is playing
             self._braviarc.media_tvpause()
         else:
@@ -332,7 +332,7 @@ class BraviaTVDevice(MediaPlayerDevice):
         ###TO DO --> if self._source == "tv:dvbc" or "tv:dvbt":
         ###TO DO --> if self._program_media_type == "tv":
         ###if self._program_name is not None:
-        if self._program_media_type == 'tv':
+        if self._program_media_type == 'tv' or self._program_name is not None:
             self._braviarc.send_command('ChannelUp')
         else:
             self._braviarc.media_next_track()
@@ -340,7 +340,7 @@ class BraviaTVDevice(MediaPlayerDevice):
     def media_previous_track(self):
         """Send the previous track command or previous channel when TV tuner is on."""
         #if self._program_name is not None:
-        if self._program_media_type == 'tv':
+        if self._program_media_type == 'tv' or self._program_name is not None:
             self._braviarc.send_command('ChannelDown')
         else:
             self._braviarc.media_previous_track()
