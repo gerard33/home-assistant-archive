@@ -24,8 +24,8 @@ from homeassistant.const import (CONF_HOST, CONF_NAME, STATE_OFF, STATE_ON)
 import homeassistant.helpers.config_validation as cv
 
 REQUIREMENTS = [
-    'https://github.com/gerard33/braviarc/archive/0.4.4.zip'
-    '#braviarc==0.4.4']
+    'https://github.com/gerard33/braviarc/archive/0.4.5.zip'
+    '#braviarc==0.4.5']
 
 _LOGGER = logging.getLogger(__name__)
 
