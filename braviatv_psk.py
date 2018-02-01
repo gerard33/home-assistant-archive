@@ -20,7 +20,7 @@ from homeassistant.components.media_player import (
     SUPPORT_TURN_OFF, SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_STEP, SUPPORT_PLAY,
     SUPPORT_VOLUME_SET, SUPPORT_SELECT_SOURCE, MediaPlayerDevice,
     PLATFORM_SCHEMA, MEDIA_TYPE_TVSHOW, SUPPORT_STOP)
-from homeassistant.const import (CONF_HOST, CONF_NAME, STATE_OFF, STATE_ON)
+from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_MAC, STATE_OFF, STATE_ON)
 import homeassistant.helpers.config_validation as cv
 
 REQUIREMENTS = [
@@ -37,15 +37,15 @@ SUPPORT_BRAVIA = SUPPORT_PAUSE | SUPPORT_VOLUME_STEP | \
 
 DEFAULT_NAME = 'Sony Bravia TV'
 
+# Load from config file
 CONF_PSK = 'psk'
-CONF_MAC = 'mac'
 CONF_AMP = 'amp'
 CONF_ANDROID = 'android'
 CONF_SOURCE_FILTER = 'sourcefilter'
 
 # Some additional info to show specific for Sony Bravia TV
 TV_WAIT = 'TV started, waiting for program info'
-TV_APP_OPENED = 'App is opened'
+TV_APP_OPENED = 'App opened'
 TV_NO_INFO = 'No info: TV resumed after pause'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -109,7 +109,7 @@ class BraviaTVDevice(MediaPlayerDevice):
         self._start_time = None
         self._end_time = None
 
-        _LOGGER.debug("Set up Sony Bravia TV with IP: " + host + " - PSK: " + psk + " - MAC: " + mac)
+        _LOGGER.debug("Set up Sony Bravia TV with IP: %s, PSK: %s, MAC: %s", host, psk, mac)
 
         self.update()
 
@@ -147,7 +147,8 @@ class BraviaTVDevice(MediaPlayerDevice):
                     self._state = STATE_OFF
 
         except Exception as exception_instance:  # pylint: disable=broad-except
-            _LOGGER.error("No data received from TV, probably it has just been turned off. Error message is: %s", exception_instance)
+            _LOGGER.error("No data received from TV. \
+                           Error message is: %s", exception_instance)
             self._state = STATE_OFF
 
     def _reset_playing_info(self):
@@ -173,8 +174,7 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def _refresh_channels(self):
         if not self._source_list:
-            self._content_mapping = self._braviarc. \
-                load_source_list()
+            self._content_mapping = self._braviarc.load_source_list()
             self._source_list = []
             if not self._source_filter: # list is empty
                 for key in self._content_mapping:
@@ -256,7 +256,7 @@ class BraviaTVDevice(MediaPlayerDevice):
             else:
                 return_value = self._program_name
         else:
-            if self._channel_name is None:
+            if not self._channel_name: # This is empty when app is opened
                 return_value = TV_APP_OPENED
         return return_value
 
