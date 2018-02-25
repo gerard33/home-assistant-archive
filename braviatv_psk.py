@@ -11,6 +11,7 @@ Updated by G3rard - October 2017
     * filter source list with list from configuration file to avoid a long list of channels and radio stations
     * pause/play tv when using built-in TV tuner
     * channel up/down with next and previous buttons when using built-in TV tuner
+    * option for broadcast parameter, so it works on machines with multiple NICS
 """
 import logging
 import voluptuous as vol
