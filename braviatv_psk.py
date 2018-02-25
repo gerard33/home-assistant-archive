@@ -1,16 +1,8 @@
 """
 Support for interface with a Sony Bravia TV.
+
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/media_player.braviatv_psk/
-Updated by G3rard - October 2017
-    Changes:
-    * use Pre-shared key (PSK) instead of connecting with a pin and the use of a cookie
-    * option for amplifier: don't show volume slider when amp is attached as slider only works for TV speakers
-    * option for Android: turn on with other method as WOL will not work
-    * show program info on second line of state card (only available if built-in TV tuner is used)
-    * filter source list with list from configuration file to avoid a long list of channels and radio stations
-    * pause/play tv when using built-in TV tuner
-    * channel up/down with next and previous buttons when using built-in TV tuner
 """
 import logging
 import voluptuous as vol
@@ -18,26 +10,25 @@ import voluptuous as vol
 from homeassistant.components.media_player import (
     SUPPORT_NEXT_TRACK, SUPPORT_PAUSE, SUPPORT_PREVIOUS_TRACK, SUPPORT_TURN_ON,
     SUPPORT_TURN_OFF, SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_STEP, SUPPORT_PLAY,
-    SUPPORT_VOLUME_SET, SUPPORT_SELECT_SOURCE, MediaPlayerDevice,
-    PLATFORM_SCHEMA, MEDIA_TYPE_TVSHOW, SUPPORT_STOP)
-from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_MAC, STATE_OFF, STATE_ON)
+    SUPPORT_PLAY_MEDIA, SUPPORT_VOLUME_SET, SUPPORT_SELECT_SOURCE,
+    MediaPlayerDevice, PLATFORM_SCHEMA, MEDIA_TYPE_TVSHOW, SUPPORT_STOP)
+from homeassistant.const import (
+    CONF_HOST, CONF_NAME, CONF_MAC, STATE_OFF, STATE_ON)
 import homeassistant.helpers.config_validation as cv
 
-REQUIREMENTS = [
-    'https://github.com/gerard33/braviarc/archive/0.4.5.zip'
-    '#braviarc==0.4.5']
+REQUIREMENTS = ['pySonyBraviaPSK==0.1.5']
 
 _LOGGER = logging.getLogger(__name__)
 
 SUPPORT_BRAVIA = SUPPORT_PAUSE | SUPPORT_VOLUME_STEP | \
-    SUPPORT_VOLUME_MUTE | SUPPORT_VOLUME_SET | \
-    SUPPORT_PREVIOUS_TRACK | SUPPORT_NEXT_TRACK | \
-    SUPPORT_TURN_ON | SUPPORT_TURN_OFF | \
-    SUPPORT_SELECT_SOURCE | SUPPORT_PLAY | SUPPORT_STOP
+                 SUPPORT_VOLUME_MUTE | SUPPORT_VOLUME_SET | \
+                 SUPPORT_PREVIOUS_TRACK | SUPPORT_NEXT_TRACK | \
+                 SUPPORT_TURN_ON | SUPPORT_TURN_OFF | \
+                 SUPPORT_SELECT_SOURCE | SUPPORT_PLAY | SUPPORT_STOP
 
 DEFAULT_NAME = 'Sony Bravia TV'
 
-# Load from config file
+# Config file
 CONF_PSK = 'psk'
 CONF_AMP = 'amp'
 CONF_ANDROID = 'android'
@@ -47,33 +38,39 @@ CONF_SOURCE_FILTER = 'sourcefilter'
 TV_WAIT = 'TV started, waiting for program info'
 TV_APP_OPENED = 'App opened'
 TV_NO_INFO = 'No info: TV resumed after pause'
+PLAY_MEDIA_OPTIONS = ['Netflix', 'Display', 'Num1', 'Num2', 'Num3']
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_HOST): cv.string,
     vol.Required(CONF_PSK): cv.string,
-    vol.Required(CONF_MAC): cv.string,
+    vol.Optional(CONF_MAC): cv.string,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_AMP, default=False): cv.boolean,
-    vol.Optional(CONF_ANDROID, default=False): cv.boolean,
-    vol.Optional(CONF_SOURCE_FILTER, default=[]): vol.All(cv.ensure_list, [cv.string])
-})
+    vol.Optional(CONF_ANDROID, default=True): cv.boolean,
+    vol.Optional(CONF_SOURCE_FILTER, default=[]): vol.All(
+        cv.ensure_list, [cv.string])})
 
 # pylint: disable=unused-argument
+
+
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Sony Bravia TV platform."""
-    name = config.get(CONF_NAME)
     host = config.get(CONF_HOST)
-    mac = config.get(CONF_MAC)
     psk = config.get(CONF_PSK)
+    mac = config.get(CONF_MAC)
+    name = config.get(CONF_NAME)
     amp = config.get(CONF_AMP)
     android = config.get(CONF_ANDROID)
     source_filter = config.get(CONF_SOURCE_FILTER)
 
-    if host is None:
-        _LOGGER.error("No TV IP address found in configuration file")
+    if host is None or psk is None:
+        _LOGGER.error(
+            "No TV IP address or Pre-Shared Key found in configuration file")
         return
 
-    add_devices([BraviaTVDevice(host, psk, mac, name, amp, android, source_filter)])
+    add_devices(
+        [BraviaTVDevice(host, psk, mac, name, amp, android, source_filter)])
+
 
 class BraviaTVDevice(MediaPlayerDevice):
     """Representation of a Sony Bravia TV."""
@@ -81,9 +78,9 @@ class BraviaTVDevice(MediaPlayerDevice):
     def __init__(self, host, psk, mac, name, amp, android, source_filter):
         """Initialize the Sony Bravia device."""
         _LOGGER.info("Setting up Sony Bravia TV")
-        from braviarc import braviarc_psk
+        from braviapsk import sony_bravia_psk
 
-        self._braviarc = braviarc_psk.BraviaRC(host, psk, mac)
+        self._braviarc = sony_bravia_psk.BraviaRC(host, psk, mac)
         self._name = name
         self._amp = amp
         self._android = android
@@ -109,7 +106,9 @@ class BraviaTVDevice(MediaPlayerDevice):
         self._start_time = None
         self._end_time = None
 
-        _LOGGER.debug("Set up Sony Bravia TV with IP: %s, PSK: %s, MAC: %s", host, psk, mac)
+        _LOGGER.debug(
+            "Set up Sony Bravia TV with IP: %s, PSK: %s, MAC: %s", host, psk,
+            mac)
 
         self.update()
 
@@ -124,31 +123,35 @@ class BraviaTVDevice(MediaPlayerDevice):
                 playing_info = self._braviarc.get_playing_info()
                 self._reset_playing_info()
                 if playing_info is None or not playing_info:
-                    #self._channel_name = 'TV on'
                     self._program_name = TV_NO_INFO
                 else:
                     self._program_name = playing_info.get('programTitle')
                     self._channel_name = playing_info.get('title')
-                    self._program_media_type = playing_info.get('programMediaType')
+                    self._program_media_type = playing_info.get(
+                        'programMediaType')
                     self._channel_number = playing_info.get('dispNum')
                     self._source = playing_info.get('source')
                     self._content_uri = playing_info.get('uri')
                     self._duration = playing_info.get('durationSec')
                     self._start_date_time = playing_info.get('startDateTime')
                     # Get time info from TV program
-                    if self._start_date_time is not None and self._duration is not None:
-                        time_info = self._braviarc.playing_time(self._start_date_time, self._duration)
+                    if self._start_date_time is not None and \
+                       self._duration is not None:
+                        time_info = self._braviarc.playing_time(
+                            self._start_date_time, self._duration)
                         self._start_time = time_info.get('start_time')
                         self._end_time = time_info.get('end_time')
             else:
                 if self._program_name == TV_WAIT:
-                    _LOGGER.info("TV is starting, no info available yet") # TV is starting up which takes some time before it responds
+                    # TV is starting up, takes some time before it responds
+                    _LOGGER.info("TV is starting, no info available yet")
                 else:
                     self._state = STATE_OFF
 
         except Exception as exception_instance:  # pylint: disable=broad-except
-            _LOGGER.error("No data received from TV. \
-                           Error message is: %s", exception_instance)
+            _LOGGER.error(
+                "No data received from TV. Error message: %s",
+                exception_instance)
             self._state = STATE_OFF
 
     def _reset_playing_info(self):
@@ -176,11 +179,14 @@ class BraviaTVDevice(MediaPlayerDevice):
         if not self._source_list:
             self._content_mapping = self._braviarc.load_source_list()
             self._source_list = []
-            if not self._source_filter: # list is empty
+            if not self._source_filter:  # list is empty
                 for key in self._content_mapping:
                     self._source_list.append(key)
             else:
-                filtered_dict = {title:uri for (title, uri) in self._content_mapping.items() if any(filter_title in title for filter_title in self._source_filter)}
+                filtered_dict = {title: uri for (title, uri) in
+                                 self._content_mapping.items()
+                                 if any(filter_title in title for filter_title
+                                        in self._source_filter)}
                 for key in filtered_dict:
                     self._source_list.append(key)
 
@@ -220,15 +226,16 @@ class BraviaTVDevice(MediaPlayerDevice):
     def supported_features(self):
         """Flag media player features that are supported."""
         supported = SUPPORT_BRAVIA
-        #Remove volume slider if amplifier is attached to TV
+        # Remove volume slider if amplifier is attached to TV
         if self._amp:
             supported = supported ^ SUPPORT_VOLUME_SET
         return supported
 
     @property
     def media_content_type(self):
-        """Content type of current playing media."""
-        # Loaded so media_artist is shown, used for program information below the channel in the state card
+        """Content type of current playing media.
+        Used for program information below the channel in the state card.
+        """
         return MEDIA_TYPE_TVSHOW
 
     @property
@@ -239,7 +246,8 @@ class BraviaTVDevice(MediaPlayerDevice):
         return_value = None
         if self._channel_name is not None:
             if self._channel_number is not None:
-                return_value = str(self._channel_number.lstrip('0')) + ': ' + self._channel_name
+                return_value = '{0!s}: {1}'.format(
+                    self._channel_number.lstrip('0'), self._channel_name)
             else:
                 return_value = self._channel_name
         return return_value
@@ -252,11 +260,12 @@ class BraviaTVDevice(MediaPlayerDevice):
         return_value = None
         if self._program_name is not None:
             if self._start_time is not None and self._end_time is not None:
-                return_value = self._program_name + ' [' + self._start_time + ' - ' + self._end_time + ']'
+                return_value = '{0} [{1} - {2}]'.format(
+                    self._program_name, self._start_time, self._end_time)
             else:
                 return_value = self._program_name
         else:
-            if not self._channel_name: # This is empty when app is opened
+            if not self._channel_name:  # This is empty when app is opened
                 return_value = TV_APP_OPENED
         return return_value
 
@@ -270,16 +279,18 @@ class BraviaTVDevice(MediaPlayerDevice):
         self._braviarc.set_volume_level(volume)
 
     def turn_on(self):
-        """Turn the media player on. Use a different command for Android as WOL is not working"""
+        """Turn the media player on.
+        Use a different command for Android as WOL is not working.
+        """
         if self._android:
             self._braviarc.turn_on_command()
         else:
             self._braviarc.turn_on()
 
-        # Show info that the TV is starting while no program is yet available
+        # Show that TV is starting while it takes time
+        # before program info is available
         self._reset_playing_info()
         self._state = STATE_ON
-        ###self._channel_name = TV_STARTING
         self._program_name = TV_WAIT
 
     def turn_off(self):
@@ -318,29 +329,38 @@ class BraviaTVDevice(MediaPlayerDevice):
         self._braviarc.media_play()
 
     def media_pause(self):
-        """Send media pause command to media player or TV pause when TV tuner is on."""
+        """Send media pause command to media player.
+        Will pause TV when TV tuner is on.
+        """
         self._playing = False
-        #if self._program_name is not None:
         if self._program_media_type == 'tv' or self._program_name is not None:
-            # Pause TV when TV tuner is playing
             self._braviarc.media_tvpause()
         else:
             self._braviarc.media_pause()
 
     def media_next_track(self):
-        """Send next track command or next channel when TV tuner is on."""
-        ###TO DO --> if self._source == "tv:dvbc" or "tv:dvbt":
-        ###TO DO --> if self._program_media_type == "tv":
-        ###if self._program_name is not None:
+        """Send next track command.
+        Will switch to next channel when TV tuner is on.
+        """
         if self._program_media_type == 'tv' or self._program_name is not None:
             self._braviarc.send_command('ChannelUp')
         else:
             self._braviarc.media_next_track()
 
     def media_previous_track(self):
-        """Send the previous track command or previous channel when TV tuner is on."""
-        #if self._program_name is not None:
+        """Send the previous track command.
+        Will switch to previous channel when TV tuner is on.
+        """
         if self._program_media_type == 'tv' or self._program_name is not None:
             self._braviarc.send_command('ChannelDown')
         else:
             self._braviarc.media_previous_track()
+
+    def play_media(self, media_type, media_id, **kwargs):
+        """Play media."""
+        _LOGGER.debug("Play media: %s (%s)", media_id, media_type)
+
+        if media_id in PLAY_MEDIA_OPTIONS:
+            self._braviarc.send_command(media_id)
+        else:
+            _LOGGER.warning("Unsupported media_id: %s", media_id)
