@@ -1,6 +1,5 @@
 """
 Support for interface with a Sony Bravia TV.
-
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/media_player.braviatv_psk/
 """
@@ -135,8 +134,7 @@ class BraviaTVDevice(MediaPlayerDevice):
                     self._duration = playing_info.get('durationSec')
                     self._start_date_time = playing_info.get('startDateTime')
                     # Get time info from TV program
-                    if self._start_date_time is not None and \
-                       self._duration is not None:
+                    if self._start_date_time and self._duration:
                         time_info = self._braviarc.playing_time(
                             self._start_date_time, self._duration)
                         self._start_time = time_info.get('start_time')
