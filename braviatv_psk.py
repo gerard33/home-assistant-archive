@@ -11,6 +11,7 @@ Updated by G3rard - October 2017
     * filter source list with list from configuration file to avoid a long list of channels and radio stations
     * pause/play tv when using built-in TV tuner
     * channel up/down with next and previous buttons when using built-in TV tuner
+    * option for broadcast parameter, so it works on machines with multiple NICS
 """
 import logging
 import voluptuous as vol
@@ -42,6 +43,7 @@ CONF_PSK = 'psk'
 CONF_AMP = 'amp'
 CONF_ANDROID = 'android'
 CONF_SOURCE_FILTER = 'sourcefilter'
+CONF_BROADCAST = 'broadcast'
 
 # Some additional info to show specific for Sony Bravia TV
 TV_WAIT = 'TV started, waiting for program info'
@@ -55,7 +57,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_AMP, default=False): cv.boolean,
     vol.Optional(CONF_ANDROID, default=False): cv.boolean,
-    vol.Optional(CONF_SOURCE_FILTER, default=[]): vol.All(cv.ensure_list, [cv.string])
+    vol.Optional(CONF_SOURCE_FILTER, default=[]): vol.All(cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_BROADCAST, default="255.255.255.255") : cv.string
 })
 
 # pylint: disable=unused-argument
@@ -68,17 +71,18 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     amp = config.get(CONF_AMP)
     android = config.get(CONF_ANDROID)
     source_filter = config.get(CONF_SOURCE_FILTER)
-
+    broadcast = config.get(CONF_BROADCAST)
+    
     if host is None:
         _LOGGER.error("No TV IP address found in configuration file")
         return
 
-    add_devices([BraviaTVDevice(host, psk, mac, name, amp, android, source_filter)])
+    add_devices([BraviaTVDevice(host, psk, mac, name, amp, android, source_filter,broadcast)])
 
 class BraviaTVDevice(MediaPlayerDevice):
     """Representation of a Sony Bravia TV."""
 
-    def __init__(self, host, psk, mac, name, amp, android, source_filter):
+    def __init__(self, host, psk, mac, name, amp, android, source_filter,broadcast):
         """Initialize the Sony Bravia device."""
         _LOGGER.info("Setting up Sony Bravia TV")
         from braviarc import braviarc_psk
@@ -88,6 +92,7 @@ class BraviaTVDevice(MediaPlayerDevice):
         self._amp = amp
         self._android = android
         self._source_filter = source_filter
+        self._broadcast = broadcast
         self._state = STATE_OFF
         self._muted = False
         self._program_name = None
@@ -274,7 +279,7 @@ class BraviaTVDevice(MediaPlayerDevice):
         if self._android:
             self._braviarc.turn_on_command()
         else:
-            self._braviarc.turn_on()
+            self._braviarc.turn_on(self._broadcast)
 
         # Show info that the TV is starting while no program is yet available
         self._reset_playing_info()
