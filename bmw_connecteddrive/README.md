@@ -14,4 +14,5 @@ https://community.home-assistant.io/t/wip-bmw-connected-drive-custom-component/3
 For `country` you have to use the country of your Connected Drive account. Please use the exact names for the country as listed on the [Connected Drive](https://www.bmw-connecteddrive.com/country-select/country-selection.html) website.
 
 **Device tracker**
+
 If your new devices aren't automatically tracked, you have to edit the known_devices.yaml and enable tracking for the BMW device tracker to make sure it get's visible in Home Assistant.
