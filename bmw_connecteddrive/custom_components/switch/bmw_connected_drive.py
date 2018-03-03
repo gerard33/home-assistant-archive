@@ -30,11 +30,11 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     for account in accounts:
         for vehicle in account.account.vehicles:
             for key, value in sorted(SWITCHES.items()):
-                device = BMWLock(account, vehicle, key, value[0], value[1])
+                device = BMWSwitch(account, vehicle, key, value[0], value[1])
                 devices.append(device)
     add_devices(devices)
 
-class BMWLock(SwitchDevice):
+class BMWSwitch(SwitchDevice):
     """Representation of a BMW vehicle switch."""
 
     def __init__(self, account, vehicle, attribute: str, sensor_name, icon):
