@@ -16,7 +16,7 @@ from homeassistant.const import (
     CONF_USERNAME, CONF_PASSWORD
 )
 
-REQUIREMENTS = ['bimmer_connected==0.4.0']
+REQUIREMENTS = ['bimmer_connected==0.4.1']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -82,18 +82,24 @@ class BMWConnectedDriveAccount(object):
 
         self.account = ConnectedDriveAccount(username, password, country)
         self.name = name
+        self._update_listeners = []
 
     def update(self, *_):
         """Update the state of all vehicles.
-
+        
         Notify all listeners about the update.
         """
+        _LOGGER.debug('Updating vehicle state for account %s, '
+                      'notifying %d listeners',
+                      self.name, len(self._update_listeners))
         try:
             self.account.update_vehicle_states()
+            for listener in self._update_listeners:
+                listener()
         except IOError as exception:
             _LOGGER.error('Error updating the vehicle state.')
             _LOGGER.exception(exception)
 
     def add_update_listener(self, listener):
         """Add a listener for update notifications."""
-        self.account.add_update_listener(listener)
+        self._update_listeners.append(listener)
