@@ -9,9 +9,9 @@ https://community.home-assistant.io/t/wip-bmw-connected-drive-custom-component/3
    mycar:
      username: USERNAME_BMW_CONNECTED_DRIVE
      password: PASSWORD_BMW_CONNECTED_DRIVE
-     country: COUNTRY_BMW_CONNECTED_DRIVE
+     region: one of "north_america", "china" , "rest_of_world"
  ```
-For `country` you have to use the country of your Connected Drive account. Please use the exact names for the country as listed on the [Connected Drive](https://www.bmw-connecteddrive.com/country-select/country-selection.html) website.
+For the region of your Connected Drive account please use one of these values: `north_america`, `china`, `rest_of_world`
 
 **Device tracker**
 
