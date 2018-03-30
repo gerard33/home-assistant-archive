@@ -4,8 +4,8 @@ Reads vehicle status from BMW connected drive portal.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/sensor.bmw_connected_drive/
 """
-import logging
 import asyncio
+import logging
 
 from custom_components.bmw_connected_drive import DOMAIN as BMW_DOMAIN
 from homeassistant.helpers.entity import Entity
@@ -38,7 +38,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                 device = BMWConnectedDriveSensor(account, vehicle, key,
                                                  value[0], value[1])
                 devices.append(device)
-    add_devices(devices)
+    add_devices(devices, True)
 
 
 class BMWConnectedDriveSensor(Entity):
@@ -51,13 +51,20 @@ class BMWConnectedDriveSensor(Entity):
         self._attribute = attribute
         self._state = None
         self._unit_of_measurement = None
-        self._name = sensor_name
+        self._name = '{} {}'.format(self._vehicle.name, self._attribute)
+        self._unique_id = '{}-{}'.format(self._vehicle.vin, self._attribute)
+        self._sensor_name = sensor_name
         self._icon = icon
 
     @property
     def should_poll(self) -> bool:
         """Data update is triggered from BMWConnectedDriveEntity."""
         return False
+
+    @property
+    def unique_id(self):
+        """Return the unique ID of the binary sensor."""
+        return self._unique_id
 
     @property
     def name(self) -> str:
@@ -86,33 +93,34 @@ class BMWConnectedDriveSensor(Entity):
     @property
     def device_state_attributes(self):
         """Return the state attributes of the binary sensor."""
-        vehicle_state = self._vehicle.state
-
         return {
-            'last_update': vehicle_state.timestamp,
-            'car': self._vehicle.modelName
+            'last_update': self._vehicle.state.timestamp.replace(tzinfo=None),
+            'car': self._vehicle.name,
+            'friendly_name': self._sensor_name
         }
 
     def update(self) -> None:
         """Read new state data from the library."""
-        _LOGGER.debug('Updating %s', self.entity_id)
+        _LOGGER.debug('Updating %s', self._vehicle.name)
         vehicle_state = self._vehicle.state
         self._state = getattr(vehicle_state, self._attribute)
 
         if self._attribute in LENGTH_ATTRIBUTES:
-            self._unit_of_measurement = vehicle_state.unit_of_length
+            self._unit_of_measurement = 'km'
         elif self._attribute == 'remaining_fuel':
-            self._unit_of_measurement = vehicle_state.unit_of_volume
+            self._unit_of_measurement = 'l'
         else:
             self._unit_of_measurement = None
 
-        self.schedule_update_ha_state()
+    def update_callback(self):
+        """Schedule a state update."""
+        self.schedule_update_ha_state(True)
 
     @asyncio.coroutine
     def async_added_to_hass(self):
         """Add callback after being added to hass.
-
+        
         Show latest data after startup.
         """
-        self._account.add_update_listener(self.update)
-        yield from self.hass.async_add_job(self.update)
+        self._account.add_update_listener(self.update_callback)
+        self._account.async_add_to_group(self._vehicle, self.entity_id)
