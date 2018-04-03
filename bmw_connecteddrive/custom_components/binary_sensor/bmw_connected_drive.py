@@ -38,10 +38,18 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     devices = []
     for account in accounts:
         for vehicle in account.account.vehicles:
-            for key, value in sorted(SENSOR_TYPES.items()):
-                device = BMWConnectedDriveSensor(account, vehicle, key,
-                                                 value[0], value[1])
-                devices.append(device)
+            if vehicle.has_hv_battery:
+                _LOGGER.debug('Binary sensors for electric car added')
+                for key, value in sorted(SENSOR_TYPES_ELEC.items()):
+                    device = BMWConnectedDriveSensor(account, vehicle, key,
+                                                    value[0], value[1])
+                    devices.append(device)
+            elif vehicle.has_internal_combustion_engine:
+                _LOGGER.debug('Binary sensors for combustion engine car added')
+                for key, value in sorted(SENSOR_TYPES.items()):
+                    device = BMWConnectedDriveSensor(account, vehicle, key,
+                                                    value[0], value[1])
+                    devices.append(device)
     add_devices(devices, True)
 
 
