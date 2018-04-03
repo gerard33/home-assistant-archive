@@ -9,7 +9,7 @@ https://community.home-assistant.io/t/wip-bmw-connected-drive-custom-component/3
    mycar:
      username: USERNAME_BMW_CONNECTED_DRIVE
      password: PASSWORD_BMW_CONNECTED_DRIVE
-     region: one of "north_america", "china" , "rest_of_world"
+     region: one of "north_america", "china", "rest_of_world"
  ```
 For the region of your Connected Drive account please use one of these values: `north_america`, `china`, `rest_of_world`
 
