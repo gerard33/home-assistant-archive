@@ -73,8 +73,7 @@ class BMWSwitch(SwitchDevice):
         """Return the state attributes of the switch."""
         return {
             'last_update': self._vehicle.state.timestamp.replace(tzinfo=None),
-            'car': self._vehicle.name,
-            'friendly_name': self._sensor_name
+            'car': self._vehicle.name
         }
 
     def turn_on(self, **kwargs):
