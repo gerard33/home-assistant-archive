@@ -67,8 +67,7 @@ class BMWLock(LockDevice):
             'last_update': vehicle_state.timestamp.replace(tzinfo=None),
             'last_update_reason': vehicle_state.last_update_reason,
             'car': self._vehicle.name,
-            'door_lock_state': vehicle_state.door_lock_state.value,
-            'friendly_name': self._sensor_name
+            'door_lock_state': vehicle_state.door_lock_state.value
         }
 
     @property
