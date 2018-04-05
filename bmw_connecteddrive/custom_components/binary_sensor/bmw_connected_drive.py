@@ -99,8 +99,7 @@ class BMWConnectedDriveSensor(BinarySensorDevice):
         vehicle_state = self._vehicle.state
         result = {
             'last_update': vehicle_state.timestamp.replace(tzinfo=None),
-            'car': self._vehicle.name,
-            'friendly_name': self._sensor_name
+            'car': self._vehicle.name
         }
 
         if self._attribute == 'lids':
