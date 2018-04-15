@@ -64,6 +64,7 @@ class BMWConnectedDriveSensor(Entity):
     @property
     def icon(self):
         """Icon to use in the frontend, if any."""
+        # pylint: disable=import-error
         from bimmer_connected.state import ChargingState
         vehicle_state = self._vehicle.state
         charge_state = vehicle_state.charging_status in \
@@ -105,7 +106,7 @@ class BMWConnectedDriveSensor(Entity):
         elif self._attribute == 'remaining_fuel':
             return 'l'
         elif self._attribute == 'charging_time_remaining':
-            return 'minutes'
+            return 'h'
         elif self._attribute == 'charging_level_hv':
             return '%'
         else:
@@ -123,7 +124,10 @@ class BMWConnectedDriveSensor(Entity):
         """Read new state data from the library."""
         _LOGGER.debug('Updating %s', self._vehicle.name)
         vehicle_state = self._vehicle.state
-        self._state = getattr(vehicle_state, self._attribute)
+        if self._attribute == 'charging_status':
+            self._state = getattr(vehicle_state, self._attribute.value)
+        else:
+            self._state = getattr(vehicle_state, self._attribute)
 
     def update_callback(self):
         """Schedule a state update."""
