@@ -185,4 +185,3 @@ class BMWConnectedDriveSensor(BinarySensorDevice):
         Show latest data after startup.
         """
         self._account.add_update_listener(self.update_callback)
-        self._account.async_add_to_group(self._vehicle, self.entity_id)
