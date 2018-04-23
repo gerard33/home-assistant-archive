@@ -26,8 +26,6 @@ def setup_scanner(hass, config, see, discovery_info=None):
             account.add_update_listener(tracker.update)
             tracker.update()
 
-            account.async_add_to_group(
-                vehicle,  'device_tracker.{}'.format(tracker.dev_id))
     return True
 
 
