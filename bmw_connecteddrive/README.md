@@ -16,3 +16,27 @@ For the region of your Connected Drive account please use one of these values: `
 **Device tracker**
 
 If your new devices aren't automatically tracked, you have to edit the known_devices.yaml and enable tracking for the BMW device tracker to make sure it get's visible in Home Assistant.
+
+**Switches**
+
+This version uses the newly added [services](https://github.com/home-assistant/home-assistant/pull/13497) instead of the switches, you can configure this by using the following script.
+```yaml
+bmw_airco:
+  sequence:
+    - service: bmw_connected_drive.activate_air_conditioning
+      data:
+        vin: '<your_17_char_vin>'
+bmw_horn:
+  sequence:
+    - service: bmw_connected_drive.sound_horn
+      data:
+        vin: '<your_17_char_vin>'
+bmw_light:
+  sequence:
+    - service: bmw_connected_drive.light_flash
+      data:
+        vin: '<your_17_char_vin>'
+bmw_refresh:
+  sequence:
+    - service: bmw_connected_drive.update_state
+```
