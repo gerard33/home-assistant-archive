@@ -1,9 +1,5 @@
 # Home Assistant
 
-**Sony Bravia TV**
+**BMW Connected Drive**
 
-See https://community.home-assistant.io/t/ready-for-testing-sony-bravia-tv-component-with-pre-shared-key/30698
-
-**ICY E-Thermostaat**
-
-See https://community.home-assistant.io/t/e-thermostaat-icy/493
+See https://community.home-assistant.io/t/bmw-connecteddrive-component/39569
