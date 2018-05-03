@@ -125,7 +125,7 @@ class BMWConnectedDriveSensor(Entity):
         _LOGGER.debug('Updating %s', self._vehicle.name)
         vehicle_state = self._vehicle.state
         if self._attribute == 'charging_status':
-            self._state = getattr(vehicle_state, self._attribute.value)
+            self._state = getattr(vehicle_state, self._attribute).value
         else:
             self._state = getattr(vehicle_state, self._attribute)
 
