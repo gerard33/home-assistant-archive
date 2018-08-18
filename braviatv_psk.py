@@ -108,8 +108,10 @@ class BraviaTVDevice(MediaPlayerDevice):
         self._start_time = None
         self._end_time = None
         
-        if mac is not None:
+        if mac:
             self._unique_id = '{}-{}'.format(mac, name)
+        else:
+            self._unique_id = '{}-{}'.format(host, name)
 
         _LOGGER.debug(
             "Set up Sony Bravia TV with IP: %s, PSK: %s, MAC: %s", host, psk,
