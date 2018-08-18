@@ -37,8 +37,12 @@ CONF_SOURCE_FILTER = 'sourcefilter'
 # Some additional info to show specific for Sony Bravia TV
 TV_WAIT = 'TV started, waiting for program info'
 TV_APP_OPENED = 'App opened'
-TV_NO_INFO = 'No info: TV resumed after pause'
-PLAY_MEDIA_OPTIONS = ['Netflix', 'Display', 'Num1', 'Num2', 'Num3']
+TV_NO_INFO = 'No info (resumed after pause or app opened)'
+PLAY_MEDIA_OPTIONS = [
+    'Num1', 'Num2', 'Num3', 'Num4', 'Num5', 'Num6', 'Num7', 'Num8', 'Num9',
+    'Num0', 'Netflix', 'Display', 'ChannelUp', 'ChannelDown', 'Up', 'Down',
+    'Left', 'Right', 'Confirm', 'Home', 'EPG', 'Return', 'Options', 'Exit'
+]
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_HOST): cv.string,
@@ -92,11 +96,9 @@ class BraviaTVDevice(MediaPlayerDevice):
         self._channel_number = None
         self._source = None
         self._source_list = []
-        self._original_content_list = []
         self._content_mapping = {}
         self._duration = None
         self._content_uri = None
-        self._id = None
         self._playing = False
         self._start_date_time = None
         self._program_media_type = None
@@ -105,6 +107,9 @@ class BraviaTVDevice(MediaPlayerDevice):
         self._volume = None
         self._start_time = None
         self._end_time = None
+        
+        if mac is not None:
+            self._unique_id = '{}-{}'.format(mac, name)
 
         _LOGGER.debug(
             "Set up Sony Bravia TV with IP: %s, PSK: %s, MAC: %s", host, psk,
@@ -148,9 +153,8 @@ class BraviaTVDevice(MediaPlayerDevice):
                     self._state = STATE_OFF
 
         except Exception as exception_instance:  # pylint: disable=broad-except
-            _LOGGER.error(
-                "No data received from TV. Error message: %s",
-                exception_instance)
+            _LOGGER.error("No data received from TV. Error message: %s",
+                          exception_instance)
             self._state = STATE_OFF
 
     def _reset_playing_info(self):
@@ -195,6 +199,11 @@ class BraviaTVDevice(MediaPlayerDevice):
         return self._name
 
     @property
+    def unique_id(self):
+        """Return the unique ID of the device."""
+        return self._unique_id
+
+    @property
     def state(self):
         """Return the state of the device."""
         return self._state
@@ -233,6 +242,7 @@ class BraviaTVDevice(MediaPlayerDevice):
     @property
     def media_content_type(self):
         """Content type of current playing media.
+
         Used for program information below the channel in the state card.
         """
         return MEDIA_TYPE_TVSHOW
@@ -240,6 +250,7 @@ class BraviaTVDevice(MediaPlayerDevice):
     @property
     def media_title(self):
         """Title of current playing media.
+
         Used to show TV channel info.
         """
         return_value = None
@@ -254,6 +265,7 @@ class BraviaTVDevice(MediaPlayerDevice):
     @property
     def media_series_title(self):
         """Title of series of current playing media, TV show only.
+
         Used to show TV program info.
         """
         return_value = None
@@ -279,6 +291,7 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def turn_on(self):
         """Turn the media player on.
+
         Use a different command for Android as WOL is not working.
         """
         if self._android:
@@ -294,8 +307,8 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def turn_off(self):
         """Turn off media player."""
-        self._state = STATE_OFF
         self._braviarc.turn_off()
+        self._state = STATE_OFF
 
     def volume_up(self):
         """Volume up the media player."""
@@ -329,6 +342,7 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def media_pause(self):
         """Send media pause command to media player.
+
         Will pause TV when TV tuner is on.
         """
         self._playing = False
@@ -339,6 +353,7 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def media_next_track(self):
         """Send next track command.
+
         Will switch to next channel when TV tuner is on.
         """
         if self._program_media_type == 'tv' or self._program_name is not None:
@@ -348,6 +363,7 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def media_previous_track(self):
         """Send the previous track command.
+
         Will switch to previous channel when TV tuner is on.
         """
         if self._program_media_type == 'tv' or self._program_name is not None:
