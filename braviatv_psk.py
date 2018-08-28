@@ -246,6 +246,7 @@ class BraviaTVDevice(MediaPlayerDevice):
     @property
     def media_content_type(self):
         """Content type of current playing media.
+
         Used for program information below the channel in the state card.
         """
         return MEDIA_TYPE_TVSHOW
@@ -253,6 +254,7 @@ class BraviaTVDevice(MediaPlayerDevice):
     @property
     def media_title(self):
         """Title of current playing media.
+
         Used to show TV channel info.
         """
         return_value = None
@@ -267,6 +269,7 @@ class BraviaTVDevice(MediaPlayerDevice):
     @property
     def media_series_title(self):
         """Title of series of current playing media, TV show only.
+
         Used to show TV program info.
         """
         return_value = None
@@ -292,6 +295,7 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def turn_on(self):
         """Turn the media player on.
+
         Use a different command for Android as WOL is not working.
         """
         if self._android:
@@ -342,6 +346,7 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def media_pause(self):
         """Send media pause command to media player.
+
         Will pause TV when TV tuner is on.
         """
         self._playing = False
@@ -352,6 +357,7 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def media_next_track(self):
         """Send next track command.
+
         Will switch to next channel when TV tuner is on.
         """
         if self._program_media_type == 'tv' or self._program_name is not None:
@@ -361,6 +367,7 @@ class BraviaTVDevice(MediaPlayerDevice):
 
     def media_previous_track(self):
         """Send the previous track command.
+
         Will switch to previous channel when TV tuner is on.
         """
         if self._program_media_type == 'tv' or self._program_name is not None:
