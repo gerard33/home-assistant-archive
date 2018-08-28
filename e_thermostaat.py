@@ -4,7 +4,7 @@ For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/climate.e_thermostaat/
 """
 import logging
-
+import requests
 import voluptuous as vol
 
 from homeassistant.components.climate import (
@@ -15,7 +15,7 @@ from homeassistant.const import (
     CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS)
 import homeassistant.helpers.config_validation as cv
 
-import requests
+__version__ = '0.2.0'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,19 +42,14 @@ DEFAULT_AWAY_TEMPERATURE = 12
 MIN_TEMP = 10
 MAX_TEMP = 30
 
-# Values reverse engineered for settings
+# Values of E-Thermostaat to map to operation mode
 COMFORT = 32
 SAVING = 64
 AWAY = 0
 FIXED_TEMP = 128
 
-# Dict from Integer to Operation mode
-OPERATION_MODES = {COMFORT: STATE_COMFORT,
-                   SAVING: STATE_SAVING,
-                   AWAY: STATE_AWAY,
-                   FIXED_TEMP: STATE_FIXED_TEMP}
-
-SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE | SUPPORT_OPERATION_MODE | SUPPORT_AWAY_MODE)
+SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE | SUPPORT_OPERATION_MODE |
+                 SUPPORT_AWAY_MODE)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
@@ -69,7 +64,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 })
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
-    """Setup the e thermostat."""
+    """Setup the E-Thermostaat Platform."""
     name = config.get(CONF_NAME)
     comfort_temp = config.get(CONF_COMFORT_TEMPERATURE)
     saving_temp = config.get(CONF_SAVING_TEMPERATURE)
@@ -82,7 +77,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         comfort_temp, saving_temp, away_temp)])
 
 class EThermostaat(ClimateDevice):
-    """Representation of a EThermostaat device."""
+    """Representation of a E-Thermostaat device."""
 
     def __init__(self, name, username, password,
                  comfort_temp, saving_temp, away_temp):
@@ -103,7 +98,8 @@ class EThermostaat(ClimateDevice):
         self._uid = None
         self._token = None
 
-        self._operation_list = [STATE_COMFORT, STATE_SAVING, STATE_AWAY, STATE_FIXED_TEMP]
+        self._operation_list = [STATE_COMFORT, STATE_SAVING,
+                                STATE_AWAY, STATE_FIXED_TEMP]
         self.update()
 
     @property
@@ -170,7 +166,8 @@ class EThermostaat(ClimateDevice):
         elif operation_mode == STATE_AWAY:
             self._set_temperature(self._away_temp, mode_int=AWAY)
         elif operation_mode == STATE_FIXED_TEMP:
-            self._set_temperature(self._target_temperature, mode_int=FIXED_TEMP)
+            self._set_temperature(self._target_temperature,
+                                  mode_int=FIXED_TEMP)
 
     def turn_away_mode_on(self):
         """Turn away on."""
@@ -185,7 +182,6 @@ class EThermostaat(ClimateDevice):
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is None:
             return
-
         self._set_temperature(temperature)
 
     def _set_temperature(self, temperature, mode_int=None):
@@ -206,9 +202,11 @@ class EThermostaat(ClimateDevice):
             for i in self._old_conf[1:]:
                 payload_new.append(('configuration[]', i))
 
-        if self._request_with_retry(URL_DATA, payload_new, request_type='post'):
+        if self._request_with_retry(URL_DATA, payload_new,
+                                    request_type='post'):
             # update state values since we assume update was successful
-            self._current_operation_mode = self.map_int_to_operation_mode(mode_int)
+            self._current_operation_mode = \
+                self.map_int_to_operation_mode(mode_int)
             self._target_temperature = temperature
             # self.schedule_update_ha_state(force_refresh=True)
 
@@ -274,7 +272,7 @@ class EThermostaat(ClimateDevice):
             self._old_conf = data['configuration']
             self._current_operation_mode = \
                 self.map_int_to_operation_mode(self._old_conf[0])
-            _LOGGER.debug("E-Thermostaat configuration number: {}".format(self._old_conf[0]))
+            _LOGGER.debug("E-Thermostaat value: {}".format(self._old_conf[0]))
         else:
             _LOGGER.error("Could not get data from E-Thermostaat.")
 
@@ -291,5 +289,4 @@ class EThermostaat(ClimateDevice):
             return STATE_COMFORT
         elif SAVING <= config_int < FIXED_TEMP:
             return STATE_SAVING
-        else:
-            return STATE_FIXED_TEMP
+        return STATE_FIXED_TEMP
