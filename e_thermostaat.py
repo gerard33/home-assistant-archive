@@ -7,12 +7,11 @@ import logging
 import requests
 import voluptuous as vol
 
-from homeassistant.components.climate import (
-    ClimateDevice, PLATFORM_SCHEMA, SUPPORT_OPERATION_MODE,
-    SUPPORT_TARGET_TEMPERATURE, SUPPORT_AWAY_MODE)
+from homeassistant.components.climate import (ClimateDevice, PLATFORM_SCHEMA)
+from homeassistant.components.climate.const import (
+    SUPPORT_OPERATION_MODE, SUPPORT_TARGET_TEMPERATURE, SUPPORT_AWAY_MODE)
 from homeassistant.const import (
-    ATTR_TEMPERATURE,
-    CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS)
+    ATTR_TEMPERATURE, CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS)
 import homeassistant.helpers.config_validation as cv
 
 __version__ = '0.2.0'
