@@ -13,3 +13,7 @@ See https://community.home-assistant.io/t/e-thermostaat-icy/493
 
 Latest version for use with Custom Component updater can be found at
 https://github.com/custom-components/climate.e_thermostaat
+
+** BMW Connected Drive **
+
+This is a BMW custom component made for test purposes.
